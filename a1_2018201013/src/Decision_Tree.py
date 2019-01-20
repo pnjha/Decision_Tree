@@ -512,7 +512,7 @@ def calculate_gini(left_data, right_data):
     return feature_gini
 
 
-# ### Miscalssification Calculation
+# ### Misclassification Calculation
 
 # In[18]:
 
@@ -695,19 +695,19 @@ def plot_features():
     df = pd.read_csv("train.csv")
     
     #Visualisation
-    sns.catplot(y="time_spend_company", x="number_project", hue="left", data=df);
-    sns.catplot(y="satisfaction_level", x="left",kind="box", hue="number_project", data=df);
-    sns.catplot(y="satisfaction_level", x="left", hue="time_spend_company", kind = "box",data=df);
-    sns.catplot(y="time_spend_company", x="left",hue="promotion_last_5years", kind = "box",data=df);
-    sns.catplot(y="time_spend_company", x="left",hue="sales", kind = "box",data=df);
-    sns.catplot(y="average_montly_hours", x="left",hue="promotion_last_5years", kind = "box",data=df);
-    sns.catplot(y="average_montly_hours", x="left",hue="promotion_last_5years", data=df);
-    sns.catplot(y="satisfaction_level", x="left",hue="promotion_last_5years", data=df);
-    sns.catplot(y="satisfaction_level", x="left",hue="Work_accident", data=df);
-    sns.catplot(y="satisfaction_level", x="left", hue="time_spend_company", data=df);
-    sns.catplot(y="satisfaction_level", x="left", hue="number_project", data=df.query("number_project != 3"));
-    sns.catplot(y="satisfaction_level", x="left", hue="number_project", data=df);
-    sns.catplot(y="satisfaction_level", x="left",kind="swarm", hue="number_project",data=df);
+    sns.catplot(y="time_spend_company", x="number_project", hue="left", data=df)
+    sns.catplot(y="satisfaction_level", x="left",kind="box", hue="number_project", data=df)
+    sns.catplot(y="satisfaction_level", x="left", hue="time_spend_company", kind = "box",data=df)
+    sns.catplot(y="time_spend_company", x="left",hue="promotion_last_5years", kind = "box",data=df)
+    sns.catplot(y="time_spend_company", x="left",hue="sales", kind = "box",data=df)
+    sns.catplot(y="average_montly_hours", x="left",hue="promotion_last_5years", kind = "box",data=df)
+    sns.catplot(y="average_montly_hours", x="left",hue="promotion_last_5years", data=df)
+    sns.catplot(y="satisfaction_level", x="left",hue="promotion_last_5years", data=df)
+    sns.catplot(y="satisfaction_level", x="left",hue="Work_accident", data=df)
+    sns.catplot(y="satisfaction_level", x="left", hue="time_spend_company", data=df)
+    sns.catplot(y="satisfaction_level", x="left", hue="number_project", data=df.query("number_project != 3"))
+    sns.catplot(y="satisfaction_level", x="left", hue="number_project", data=df)
+    sns.catplot(y="satisfaction_level", x="left",kind="swarm", hue="number_project",data=df)
 
 
 # ### Error vs Tree Depth
