@@ -5,7 +5,7 @@
 
 # ### Import Packages
 
-# In[1]:
+# In[10]:
 
 
 import numpy as np
@@ -22,7 +22,7 @@ from pprint import pprint
 
 # ### Class Structure for Internal Nodes
 
-# In[2]:
+# In[11]:
 
 
 class decision_node:
@@ -47,7 +47,7 @@ class decision_node:
 
 # ### Class Structure for Leaf Nodes
 
-# In[3]:
+# In[12]:
 
 
 class leaf_node:
@@ -66,25 +66,30 @@ class leaf_node:
 
 # ## Data Preprocessing
 
-# In[35]:
+# In[13]:
 
 
 def data_preprocessing(question):
     
+    #read dataset from file
     df = pd.read_csv("train.csv")
+    
     df["label"] = df.left
-
-    if question == "all":
-        #For training on both continous and categorical features
-        df = df.drop(["left"], axis=1)
+    df = df.drop(["left"], axis=1)
+    df["left"]  = df.label
+    df = df.drop(["label"], axis=1)
         
-    elif question == "categorical":
+#     print(df)    
+        
+    if question == "categorical":
         #For training on only categorical features
-        df = df.drop(["left","satisfaction_level","last_evaluation","number_project","average_montly_hours","time_spend_company"],axis=1)  
+        df = df.drop(["satisfaction_level","last_evaluation","number_project","average_montly_hours","time_spend_company"],axis=1)  
 
+#     print(df)        
+        
     #dividing dataset into positive and negative values of the label
-    pos_df = df.loc[df['label'] == 0]
-    neg_df = df.loc[df['label'] == 1]
+    pos_df = df.loc[df['left'] == 0]
+    neg_df = df.loc[df['left'] == 1]
     
     #spliting positive and negative dataset into randomly 80-20 % split
     pos_train_df, pos_test_df = train_test_split(pos_df, 0.2)
@@ -99,7 +104,7 @@ def data_preprocessing(question):
 
 # ### Spliting dataset in test and validation set
 
-# In[40]:
+# In[14]:
 
 
 #df is the data frame to split and size is the fraction on dataset in validation set
@@ -125,13 +130,13 @@ def train_test_split(df, size):
 
 # ### Build Tree Logic
 
-# In[6]:
+# In[15]:
 
 
 def build_tree(data, impurity_measure = "gini", counter = 0, min_rows = 3, max_depth = 8, no_of_node = []):
     
     #To determine next best split column and its value based on which split has to be done
-    split_column, split_value = determine_split(data,impurity_measure)
+    split_column, split_value = find_split(data,impurity_measure)
     
     #base condition
     if ((split_column == "") or check_purity_data(data)) or (len(data) < min_rows) or (counter == max_depth) or (no_of_node[0] <= 0):
@@ -148,8 +153,8 @@ def build_tree(data, impurity_measure = "gini", counter = 0, min_rows = 3, max_d
     #Spliting dataset based on split_column and split_value
     left_child_data, right_child_data = split_data(data, split_column, split_value)
 
-    feature_name = COLUMN_HEADERS[split_column]
-    type_of_feature = FEATURE_TYPES[split_column]
+    feature_name = header_list[split_column]
+    type_of_feature = type_list[split_column]
 
     #Creating internal node object
     node = decision_node()
@@ -176,7 +181,7 @@ def build_tree(data, impurity_measure = "gini", counter = 0, min_rows = 3, max_d
 
 # ### Classification Procedure
 
-# In[7]:
+# In[16]:
 
 
 def dt_classifier(test_row, tree):
@@ -230,7 +235,7 @@ def dt_classifier(test_row, tree):
 
 # ## Utility Functions
 
-# In[8]:
+# In[17]:
 
 
 #To check whether the label column contains only one distinct value or not
@@ -246,7 +251,7 @@ def check_purity_data(data):
         return False
 
 
-# In[9]:
+# In[18]:
 
 
 #To find number occurrences of dictinct values in label feature and to return values with maximum occurence and count of all distinct values
@@ -275,7 +280,7 @@ def classify_data(data):
     return classification, positives, negatives 
 
 
-# In[10]:
+# In[19]:
 
 
 #To split data based on a particular unique value of a particular feature
@@ -285,7 +290,7 @@ def split_data(data, split_column, split_value):
     split_column_values = data[:, split_column]
     
     #Get feature type which can be either continuous or categorical 
-    type_of_feature = FEATURE_TYPES[split_column]
+    type_of_feature = type_list[split_column]
     
     #For continuous feature
     if type_of_feature == "continuous":
@@ -300,19 +305,19 @@ def split_data(data, split_column, split_value):
     return left_data, right_data
 
 
-# In[97]:
+# In[20]:
 
 
 #Function to find feature and  its unique value which provides best split information gain 
-def determine_split(data,impurity_measure):
+def find_split(data,impurity_measure):
     
     #To store all split points possible for the current dataset
-    potential_splits = {}
+    split_columns_values = {}
     
     #To get number of columns in numpy ndarray
     no_of_columns = data.shape[1]
     
-    #Looping on all features and storing all unique values as split points except on label feature
+    #Looping on all features and storing all unique values as split points except on left feature
     for column_index in range(no_of_columns - 1):          
     
         values = data[:, column_index]
@@ -321,10 +326,10 @@ def determine_split(data,impurity_measure):
         unique_values = np.unique(values)
         
         #To get feature type which can be either categorical or continuous
-        type_of_feature = FEATURE_TYPES[column_index]
+        type_of_feature = type_list[column_index]
         
         if type_of_feature == "continuous":
-            potential_splits[column_index] = []
+            split_columns_values[column_index] = []
             
             #For continuous we store the mid point of all consecutive unique value as potential split point
             for index in range(len(unique_values)):
@@ -333,11 +338,11 @@ def determine_split(data,impurity_measure):
                     previous_value = unique_values[index - 1]
                     potential_split = (current_value + previous_value)/2
 
-                    potential_splits[column_index].append(potential_split)
+                    split_columns_values[column_index].append(potential_split)
                     
         #For categorical feature we only take those feature whose number of unique values are greater than one so that we don't recurse on same feature again and again
         elif type_of_feature == "categorical" and len(unique_values) > 1:
-            potential_splits[column_index] = unique_values
+            split_columns_values[column_index] = unique_values
     
     #To get present impurity present in dataset based on label feature
     present_impurity = get_impurities(data,impurity_measure)
@@ -349,10 +354,10 @@ def determine_split(data,impurity_measure):
     best_split_value = 0
     
     #To calculate information gain for every feature in potential splits dictionary
-    for column_index in potential_splits:
+    for column_index in split_columns_values:
         
         #For every unique value of a feature
-        for value in potential_splits[column_index]:
+        for value in split_columns_values[column_index]:
             
             #spliting data into two part
             left_child_data, right_child_data = split_data(data, split_column=column_index, split_value=value)
@@ -377,7 +382,7 @@ def determine_split(data,impurity_measure):
     return best_split_column, best_split_value
 
 
-# In[12]:
+# In[21]:
 
 
 #To get impurity of dataset based on a particular impurity measure
@@ -391,20 +396,20 @@ def get_impurities(data, impurity_measure):
         return misclassification(data)
 
 
-# In[13]:
+# In[22]:
 
 
 #To segregate continuous feature and categorical feature based on a threshold value
 def determine_feature_type(df):
     
-    feature_types = []
+    type_list = []
     
     #Threshlod value which determines if number of unique values id 
     unique_values_treshold = 5
     for feature in df.columns:
         
         #We assume that label feature is categorical otherwise it cannot be a classification problem
-        if feature != "label":
+        if feature != "left":
             
             #Find unique values of a features
             unique_values = df[feature].unique()
@@ -412,18 +417,18 @@ def determine_feature_type(df):
 
             #if value is string then it has to be categorical or if no of unique values is less than threshold
             if (isinstance(value, str)) or (len(unique_values) <= unique_values_treshold):
-                feature_types.append("categorical")
+                type_list.append("categorical")
             else:
-                feature_types.append("continuous")
+                type_list.append("continuous")
     
-    return feature_types
+    return type_list
 
 
 # ## Impurity Measure Functions
 
 # ### Entropy Calculation
 
-# In[14]:
+# In[23]:
 
 
 #To calculate entropy of dataset based on label feature only
@@ -444,7 +449,7 @@ def entropy(data):
     return entropy
 
 
-# In[15]:
+# In[24]:
 
 
 #To calculate entropy of data of left data and right data
@@ -467,7 +472,7 @@ def calculate_entropy(left_data, right_data):
 
 # ### Gini Calculation
 
-# In[16]:
+# In[25]:
 
 
 #To calculate gini of dataset based on label feature only
@@ -491,7 +496,7 @@ def gini(data):
     return gini
 
 
-# In[17]:
+# In[26]:
 
 
 #To calculate gini of data of left data and right data
@@ -512,9 +517,9 @@ def calculate_gini(left_data, right_data):
     return feature_gini
 
 
-# ### Misclassification Calculation
+# ### Miscalssification Calculation
 
-# In[18]:
+# In[27]:
 
 
 #To calculate misclassification of dataset based on label feature only
@@ -535,7 +540,7 @@ def misclassification(data):
     
 
 
-# In[19]:
+# In[28]:
 
 
 #To calculate misclassification of data of left data and right data
@@ -560,7 +565,7 @@ def calculate_misclassification(left_data, right_data):
 
 # ### Confusion Matrix
 
-# In[74]:
+# In[29]:
 
 
 def print_confusion_matrix(df):
@@ -578,13 +583,13 @@ def print_confusion_matrix(df):
     count_TN = 0
     
     for index, row in df.iterrows():
-        if row["result"] == row["label"] and row["label"] == 1:
+        if row["result"] == row["left"] and row["left"] == 1:
             count_TP += 1
-        elif row["result"] == row["label"] and row["label"] == 0:
+        elif row["result"] == row["left"] and row["left"] == 0:
             count_TN += 1    
-        elif row["result"] == 1 and row["label"] == 0:
+        elif row["result"] == 1 and row["left"] == 0:
             count_FP += 1
-        elif row["result"] == 0 and row["label"] == 1:    
+        elif row["result"] == 0 and row["left"] == 1:    
             count_FN += 1
             
     print("True Positive: ", count_TP)
@@ -595,7 +600,7 @@ def print_confusion_matrix(df):
 
 # ### F1 Score Calculation
 
-# In[21]:
+# In[30]:
 
 
 def calculate_f1_score(df):
@@ -615,7 +620,7 @@ def calculate_f1_score(df):
 
 # ### Accuracy Calculation
 
-# In[42]:
+# In[31]:
 
 
 def calculate_accuracy(df):
@@ -628,7 +633,7 @@ def calculate_accuracy(df):
 
 # ### Precision Calculation
 
-# In[43]:
+# In[32]:
 
 
 def calculate_precision(df):
@@ -640,9 +645,9 @@ def calculate_precision(df):
     count_FP = 0
     
     for index, row in df.iterrows():
-        if row["result"] == row["label"] and row["label"] == 1:
+        if row["result"] == row["left"] and row["left"] == 1:
             count_TP += 1
-        elif row["result"] == 1 and row["label"] == 0:
+        elif row["result"] == 1 and row["left"] == 0:
             count_FP += 1
     
     #To check whether precision is defined or not. If not then return 0
@@ -656,7 +661,7 @@ def calculate_precision(df):
 
 # ### Recall Calculation
 
-# In[44]:
+# In[33]:
 
 
 def calculate_recall(df):
@@ -668,9 +673,9 @@ def calculate_recall(df):
     count_FN = 0
     
     for index, row in df.iterrows():
-        if row["result"] == row["label"] and row["label"] == 1:
+        if row["result"] == row["left"] and row["left"] == 1:
             count_TP += 1
-        elif row["result"] == 0 and row["label"] == 1:    
+        elif row["result"] == 0 and row["left"] == 1:    
             count_FN += 1
     
     #To check whether precision is defined or not. If not then return 0
@@ -686,33 +691,39 @@ def calculate_recall(df):
 
 # ### Plotting Features 
 
-# In[128]:
+# In[34]:
 
 
 def plot_features():
     
     #read data from csv file
     df = pd.read_csv("train.csv")
-    
-    #Visualisation
-    sns.catplot(y="time_spend_company", x="number_project", hue="left", data=df)
-    sns.catplot(y="satisfaction_level", x="left",kind="box", hue="number_project", data=df)
-    sns.catplot(y="satisfaction_level", x="left", hue="time_spend_company", kind = "box",data=df)
-    sns.catplot(y="time_spend_company", x="left",hue="promotion_last_5years", kind = "box",data=df)
-    sns.catplot(y="time_spend_company", x="left",hue="sales", kind = "box",data=df)
-    sns.catplot(y="average_montly_hours", x="left",hue="promotion_last_5years", kind = "box",data=df)
-    sns.catplot(y="average_montly_hours", x="left",hue="promotion_last_5years", data=df)
-    sns.catplot(y="satisfaction_level", x="left",hue="promotion_last_5years", data=df)
-    sns.catplot(y="satisfaction_level", x="left",hue="Work_accident", data=df)
-    sns.catplot(y="satisfaction_level", x="left", hue="time_spend_company", data=df)
-    sns.catplot(y="satisfaction_level", x="left", hue="number_project", data=df.query("number_project != 3"))
-    sns.catplot(y="satisfaction_level", x="left", hue="number_project", data=df)
-    sns.catplot(y="satisfaction_level", x="left",kind="swarm", hue="number_project",data=df)
+
+    # Compute the correlation matrix
+    corr = df.corr()
+
+    # Generate a mask for the upper triangle
+    mask = np.zeros_like(corr, dtype=np.bool)
+    mask[np.triu_indices_from(mask)] = True
+
+    sns.heatmap(corr, mask=mask, vmax=.3, center=0,square=True, linewidths=.5, cbar_kws={"shrink": .5})    
+    sns.catplot(y="satisfaction_level", x="left",kind="box", hue="number_project", data=df);
+    sns.catplot(y="satisfaction_level", x="left", hue="time_spend_company", kind = "box",data=df);
+    sns.catplot(y="time_spend_company", x="left",hue="promotion_last_5years", kind = "box",data=df);
+    sns.catplot(y="time_spend_company", x="left",hue="sales", kind = "box",data=df);
+    sns.catplot(y="average_montly_hours", x="left",hue="promotion_last_5years", kind = "box",data=df);
+    sns.catplot(y="average_montly_hours", x="left",hue="promotion_last_5years", data=df);
+    sns.catplot(y="satisfaction_level", x="left",hue="promotion_last_5years", data=df);
+    sns.catplot(y="satisfaction_level", x="left",hue="Work_accident", data=df);
+    sns.catplot(y="satisfaction_level", x="left", hue="time_spend_company", data=df);
+    sns.catplot(y="satisfaction_level", x="left", hue="number_project", data=df.query("number_project != 3"));
+    sns.catplot(y="satisfaction_level", x="left", hue="number_project", data=df);
+    sns.catplot(y="satisfaction_level", x="left",kind="swarm", hue="number_project",data=df);
 
 
 # ### Error vs Tree Depth
 
-# In[131]:
+# In[35]:
 
 
 #We iterate from 1 to max_depth to generate error vs depth plot
@@ -734,13 +745,13 @@ def error_vs_tree_depth(question, max_depth):
         #splitting dataset into train and validation set
         train_df,validation_df = data_preprocessing(question)
         
-        global COLUMN_HEADERS, FEATURE_TYPES
+        global header_list, type_list
         
         #storing cloumn header in a global varibale
-        COLUMN_HEADERS = train_df.columns
+        header_list = train_df.columns
 
         #Generating feature type for each column
-        FEATURE_TYPES = determine_feature_type(train_df)
+        type_list = determine_feature_type(train_df)
         
         #For entropy
         nodes = []
@@ -751,7 +762,7 @@ def error_vs_tree_depth(question, max_depth):
 
         #Classifiaction of validation data
         validation_df["result"] = validation_df.apply(dt_classifier, args=(tree,), axis=1)
-        validation_df["correct_result"] = validation_df["result"] == validation_df["label"]
+        validation_df["correct_result"] = validation_df["result"] == validation_df["left"]
         
         entropy.append((1 - calculate_accuracy(validation_df)))
         
@@ -767,7 +778,7 @@ def error_vs_tree_depth(question, max_depth):
 
         #Classifiaction of validation data
         validation_df["result"] = validation_df.apply(dt_classifier, args=(tree,), axis=1)
-        validation_df["correct_result"] = validation_df["result"] == validation_df["label"]
+        validation_df["correct_result"] = validation_df["result"] == validation_df["left"]
         
         gini.append((1 - calculate_accuracy(validation_df)))
         
@@ -783,7 +794,7 @@ def error_vs_tree_depth(question, max_depth):
 
         #Classifiaction of validation data
         validation_df["result"] = validation_df.apply(dt_classifier, args=(tree,), axis=1)
-        validation_df["correct_result"] = validation_df["result"] == validation_df["label"]
+        validation_df["correct_result"] = validation_df["result"] == validation_df["left"]
         
         misclassification.append((1 - calculate_accuracy(validation_df)))
         
@@ -807,7 +818,7 @@ def error_vs_tree_depth(question, max_depth):
 
 # ### Error vs Tree Nodes
 
-# In[130]:
+# In[36]:
 
 
 def error_vs_tree_nodes(question, n):
@@ -828,13 +839,13 @@ def error_vs_tree_nodes(question, n):
         #splitting dataset into train and validation set
         train_df,validation_df = data_preprocessing(question)
         
-        global COLUMN_HEADERS, FEATURE_TYPES
+        global header_list, type_list
         
         #storing cloumn header in a global varibale
-        COLUMN_HEADERS = train_df.columns
+        header_list = train_df.columns
 
         #Generating feature type for each column
-        FEATURE_TYPES = determine_feature_type(train_df)
+        type_list = determine_feature_type(train_df)
         
         #For Entropy 
         nodes = []
@@ -845,7 +856,7 @@ def error_vs_tree_nodes(question, n):
         
         #Classifiaction of validation data
         validation_df["result"] = validation_df.apply(dt_classifier, args=(tree,), axis=1)
-        validation_df["correct_result"] = validation_df["result"] == validation_df["label"]
+        validation_df["correct_result"] = validation_df["result"] == validation_df["left"]
         
         entropy.append((1 - calculate_accuracy(validation_df)))
         del nodes
@@ -859,7 +870,7 @@ def error_vs_tree_nodes(question, n):
         
         #Classifiaction of validation data
         validation_df["result"] = validation_df.apply(dt_classifier, args=(tree,), axis=1)
-        validation_df["correct_result"] = validation_df["result"] == validation_df["label"]
+        validation_df["correct_result"] = validation_df["result"] == validation_df["left"]
         
         gini.append((1 - calculate_accuracy(validation_df)))
         del nodes
@@ -874,7 +885,7 @@ def error_vs_tree_nodes(question, n):
         
         #Classifiaction of validation data
         validation_df["result"] = validation_df.apply(dt_classifier, args=(tree,), axis=1)
-        validation_df["correct_result"] = validation_df["result"] == validation_df["label"]
+        validation_df["correct_result"] = validation_df["result"] == validation_df["left"]
         
         misclassification.append((1 - calculate_accuracy(validation_df)))
         del nodes
@@ -894,7 +905,7 @@ def error_vs_tree_nodes(question, n):
 
 # ### Error vs Minimum Number of Rows
 
-# In[132]:
+# In[37]:
 
 
 def error_vs_min_rows(question, n):
@@ -916,20 +927,20 @@ def error_vs_min_rows(question, n):
         #splitting dataset into train and validation set
         train_df,validation_df = data_preprocessing(question)
         
-        global COLUMN_HEADERS, FEATURE_TYPES
+        global header_list, type_list
         
         #storing cloumn header in a global varibale
-        COLUMN_HEADERS = train_df.columns
+        header_list = train_df.columns
 
         #Generating feature type for each column
-        FEATURE_TYPES = determine_feature_type(train_df)
+        type_list = determine_feature_type(train_df)
         
         #building tree
         tree = build_tree(train_df.values,"entropy",0,i+1,400,nodes)
         
         #Classification of validation data
         validation_df["result"] = validation_df.apply(dt_classifier, args=(tree,), axis=1)
-        validation_df["correct_result"] = validation_df["result"] == validation_df["label"]
+        validation_df["correct_result"] = validation_df["result"] == validation_df["left"]
         
         entropy.append((1 - calculate_accuracy(validation_df)))
         del nodes
@@ -943,7 +954,7 @@ def error_vs_min_rows(question, n):
         
         #Classification of validation data
         validation_df["result"] = validation_df.apply(dt_classifier, args=(tree,), axis=1)
-        validation_df["correct_result"] = validation_df["result"] == validation_df["label"]
+        validation_df["correct_result"] = validation_df["result"] == validation_df["left"]
         
         gini.append((1 - calculate_accuracy(validation_df)))
         del nodes
@@ -957,7 +968,7 @@ def error_vs_min_rows(question, n):
         
         #Classification of validation data
         validation_df["result"] = validation_df.apply(dt_classifier, args=(tree,), axis=1)
-        validation_df["correct_result"] = validation_df["result"] == validation_df["label"]
+        validation_df["correct_result"] = validation_df["result"] == validation_df["left"]
         
         misclassification.append((1 - calculate_accuracy(validation_df)))
         del nodes
@@ -977,7 +988,7 @@ def error_vs_min_rows(question, n):
 
 # ### Entropy, Gini, Misclassification vs Accuracy, Precision, Recall, F1 Score
 
-# In[100]:
+# In[38]:
 
 
 def compare_metrics(question):
@@ -1008,13 +1019,13 @@ def compare_metrics(question):
         
         train_df, validation_df = data_preprocessing(question)
     
-        global COLUMN_HEADERS, FEATURE_TYPES
+        global header_list, type_list
         
         #storing cloumn header in a global varibale
-        COLUMN_HEADERS = train_df.columns
+        header_list = train_df.columns
 
         #Generating feature type for each column
-        FEATURE_TYPES = determine_feature_type(train_df)
+        type_list = determine_feature_type(train_df)
     
     
         nodes = []
@@ -1024,7 +1035,7 @@ def compare_metrics(question):
         
         #Classifiaction of validation data
         validation_df["result"] = validation_df.apply(dt_classifier, args=(tree,), axis=1)
-        validation_df["correct_result"] = validation_df["result"] == validation_df["label"]
+        validation_df["correct_result"] = validation_df["result"] == validation_df["left"]
         
         
         entropy_accuracy.append(calculate_accuracy(validation_df))
@@ -1039,7 +1050,7 @@ def compare_metrics(question):
         
         #Classifiaction of validation data
         validation_df["result"] = validation_df.apply(dt_classifier, args=(tree,), axis=1)
-        validation_df["correct_result"] = validation_df["result"] == validation_df["label"]
+        validation_df["correct_result"] = validation_df["result"] == validation_df["left"]
         gini_accuracy.append(calculate_accuracy(validation_df))
         gini_precision.append(calculate_precision(validation_df))
         gini_recall.append(calculate_recall(validation_df))
@@ -1052,7 +1063,7 @@ def compare_metrics(question):
         
         #Classifiaction of validation data
         validation_df["result"] = validation_df.apply(dt_classifier, args=(tree,), axis=1)
-        validation_df["correct_result"] = validation_df["result"] == validation_df["label"]
+        validation_df["correct_result"] = validation_df["result"] == validation_df["left"]
         misclassification_accuracy.append(calculate_accuracy(validation_df))
         misclassification_precision.append(calculate_precision(validation_df))
         misclassification_recall.append(calculate_recall(validation_df))
@@ -1111,7 +1122,7 @@ def compare_metrics(question):
 
 # ## Training and Evaluation
 
-# In[50]:
+# In[39]:
 
 
 def train_model(question):
@@ -1124,16 +1135,16 @@ def train_model(question):
     max_nodes.append(400)
     
     
-    global COLUMN_HEADERS, FEATURE_TYPES
+    global header_list, type_list
     
     #data preprocessing to split dataset to train and validation set
     train_df, validation_df = data_preprocessing(question)
     
     #storing cloumn header in a global varibale
-    COLUMN_HEADERS = train_df.columns
+    header_list = train_df.columns
     
     #Generating feature type for each column
-    FEATURE_TYPES = determine_feature_type(train_df)
+    type_list = determine_feature_type(train_df)
     
     #converting pandas data frame to numpy array
     data = train_df.values
@@ -1146,32 +1157,32 @@ def train_model(question):
     return tree
 
 
-# In[87]:
+# In[40]:
 
 
-def evaluation(question):
+def evaluation(test_file_name,question):
     
     #Train decision tree
     tree = train_model(question)
     
     #Read test data from file
-    test_df = pd.read_csv("test.csv")
+    test_df = pd.read_csv(test_file_name)
 
     #Neccessary preprocessing
     test_df["label"] = test_df.left
+    test_df = test_df.drop(["left"], axis=1)
+    test_df["left"]  = test_df.label
+    test_df = test_df.drop(["label"], axis=1)
 
-    if question == "all":
-        #For training on both continous and categorical features
-        test_df = test_df.drop(["left"], axis=1)
-        
-    elif question == "categorical":
+
+    if question == "categorical":
         #For training on only categorical features
-        test_df = test_df.drop(["left","satisfaction_level","last_evaluation","number_project","average_montly_hours","time_spend_company"],axis=1)  
+        test_df = test_df.drop(["satisfaction_level","last_evaluation","number_project","average_montly_hours","time_spend_company"],axis=1)  
 
     
     #Applying classification
     test_df["result"] = test_df.apply(dt_classifier, args=(tree,), axis=1)
-    test_df["correct_result"] = test_df["result"] == test_df["label"]
+    test_df["correct_result"] = test_df["result"] == test_df["left"]
 
     #Calculating accuracy
     accuracy = calculate_accuracy(test_df)
@@ -1196,23 +1207,23 @@ def evaluation(question):
 
 # ### Question 1 - 1
 
-# In[88]:
+# In[41]:
 
 
-evaluation("categorical")
+evaluation("test.csv","categorical")
 
 
 # ### Question 1 - 2
 
-# In[89]:
+# In[44]:
 
 
-evaluation("all")
+evaluation("test.csv","all")
 
 
 # ### Question 1 - 3
 
-# In[92]:
+# In[43]:
 
 
 compare_metrics("all")
@@ -1220,7 +1231,7 @@ compare_metrics("all")
 
 # ### Question 1 - 4
 
-# In[129]:
+# In[ ]:
 
 
 plot_features()
@@ -1228,7 +1239,7 @@ plot_features()
 
 # ### Question 1 - 5 - 1
 
-# In[117]:
+# In[ ]:
 
 
 error_vs_tree_depth("all",10)
@@ -1236,7 +1247,7 @@ error_vs_tree_depth("all",10)
 
 # ### Question 1 - 5 - 2 
 
-# In[121]:
+# In[ ]:
 
 
 error_vs_tree_nodes("all",1000)
@@ -1244,7 +1255,7 @@ error_vs_tree_nodes("all",1000)
 
 # ### Question 1 - 5 - 3
 
-# In[115]:
+# In[ ]:
 
 
 error_vs_min_rows("all", 15)
